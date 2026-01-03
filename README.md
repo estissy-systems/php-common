@@ -1,2 +1,2 @@
 # php-common
-Common data structures and value objects used in business Applications
+Common data structures and value objects used in business applications
