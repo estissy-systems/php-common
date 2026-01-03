@@ -1,0 +1,12 @@
+{
+    "name": "estissy-systems/php-common",
+    "description": "Common data structures and value objects used in business applications",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "EstissySystems\\PhpCommon\\": "src/"
+        }
+    },
+    "require": {}
+}
