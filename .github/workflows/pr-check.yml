@@ -1,0 +1,14 @@
+name: Pull request check
+
+on: pull_request
+
+jobs:
+  php-code-analysis:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker compose -f docker-compose.yml up -d
+      - run: docker exec php composer validate --no-check-publish --with-dependencies --no-interaction --no-cache
+      - run: docker exec php /app/vendor/bin/phpunit tests
+      - run: docker exec php /app/vendor/bin/phpstan --no-progress
+      - run: docker exec php /app/vendor/bin/phpcs

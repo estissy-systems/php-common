@@ -1,0 +1,9 @@
+services:
+  php:
+    build:
+      dockerfile: dev.Dockerfile
+    container_name: php
+    volumes:
+      - type: bind
+        source: .
+        target: /app
