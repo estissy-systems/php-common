@@ -6,6 +6,7 @@ namespace EstissySystems\PhpCommon\ValueObject;
 
 use Ds\Hashable;
 use LogicException;
+use NumberFormatter;
 use RoundingMode;
 
 /**
@@ -43,6 +44,24 @@ readonly class Money implements Hashable
     public function currency(): Currency
     {
         return $this->currency;
+    }
+
+    public function toHumanString(string $humanLocale): string
+    {
+        $divisor = 10 ** $this->currency()->getDecimals();
+        $dividedAmount = $this->amount / $divisor;
+
+        $numberFormatter = new NumberFormatter($humanLocale, NumberFormatter::CURRENCY);
+
+        $result = $numberFormatter->formatCurrency($dividedAmount, $this->currency()->value);
+
+        if ($result === false) {
+            throw new LogicException(
+                "Error while formatting amount $dividedAmount in currency {$this->currency()->value} and locale $humanLocale."
+            );
+        }
+
+        return $result;
     }
 
     public function equals($obj): bool
