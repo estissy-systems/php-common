@@ -163,4 +163,42 @@ class MoneyTest extends TestCase
         self::assertSame(57000, $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
     }
+
+    public function testToHumanStringShouldReturnMoneyInProvidedLocaleFormat(): void
+    {
+        $money = Money::fromAmountAndCurrency(150000005, Currency::PLN);
+        $result = $money->toHumanString('pl_PL');
+
+        self::assertSame('1 500 000,05 zł', $result);
+
+        $money = Money::fromAmountAndCurrency(-15000005, Currency::PLN);
+        $result = $money->toHumanString('pl_PL');
+
+        self::assertSame('-150 000,05 zł', $result);
+
+        $money = Money::fromAmountAndCurrency(15000005, Currency::EUR);
+        $result = $money->toHumanString('de_DE');
+
+        self::assertSame('150.000,05 €', $result);
+
+        $money = Money::fromAmountAndCurrency(15000005, Currency::USD);
+        $result = $money->toHumanString('en_US');
+
+        self::assertSame('$150,000.05', $result);
+
+        $money = Money::fromAmountAndCurrency(15000005, Currency::PLN);
+        $result = $money->toHumanString('en_US');
+
+        self::assertSame('PLN 150,000.05', $result);
+
+        $money = Money::fromAmountAndCurrency(15000005, Currency::JPY);
+        $result = $money->toHumanString('en_US');
+
+        self::assertSame('¥15,000,005', $result);
+
+        $money = Money::fromAmountAndCurrency(15000005, Currency::EUR);
+        $result = $money->toHumanString('en_US');
+
+        self::assertSame('€150,000.05', $result);
+    }
 }

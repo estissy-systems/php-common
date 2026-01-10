@@ -1,19 +1,20 @@
 {
-    "name": "estissy-systems/php-common",
-    "description": "Common data structures and value objects used in business applications",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "EstissySystems\\PhpCommon\\": "src/"
-        }
-    },
-    "require-dev": {
-        "phpstan/phpstan": "^2.1",
-        "squizlabs/php_codesniffer": "^4.0",
-        "phpunit/phpunit": "^11.5"
-    },
-    "require": {
-        "php-ds/php-ds": "^1.7"
+  "name": "estissy-systems/php-common",
+  "description": "Common data structures and value objects used in business applications",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "EstissySystems\\PhpCommon\\": "src/"
     }
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^2.1",
+    "squizlabs/php_codesniffer": "^4.0",
+    "phpunit/phpunit": "^11.5"
+  },
+  "require": {
+    "php-ds/php-ds": "^1.7",
+    "ext-intl": "*"
+  }
 }
