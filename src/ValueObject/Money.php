@@ -14,11 +14,20 @@ use RoundingMode;
  */
 readonly class Money implements Hashable
 {
-    private int $amount;
+    private const int BC_MATH_SCALE = 14;
+
+    /**
+     * @var numeric-string
+     */
+    private string $amount;
     private Currency $currency;
     private string $hash;
 
-    private function __construct(int $amount, Currency $currency)
+    /**
+     * @param numeric-string $amount
+     * @param Currency $currency
+     */
+    private function __construct(string $amount, Currency $currency)
     {
         $this->amount = $amount;
         $this->currency = $currency;
@@ -30,13 +39,15 @@ readonly class Money implements Hashable
      */
     public static function fromAmountAndCurrency(int $amount, Currency $currency): Money
     {
-        return new Money($amount, $currency);
+        return new Money((string)$amount, $currency);
     }
 
-    public function toString(): string
+    public function toString(RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero): string
     {
+        $amount = (int)bcround($this->amount, 0, $roundingMode);
         $divisor = 10 ** $this->currency()->getDecimals();
-        $dividedAmount = $this->amount / $divisor;
+
+        $dividedAmount = $amount / $divisor;
 
         return sprintf("%.{$this->currency()->getDecimals()}f %s", $dividedAmount, $this->currency()->value);
     }
@@ -46,10 +57,14 @@ readonly class Money implements Hashable
         return $this->currency;
     }
 
-    public function toHumanString(string $humanLocale): string
-    {
+    public function toHumanString(
+        string $humanLocale,
+        RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero
+    ): string {
+        $amount = (int)bcround($this->amount, 0, $roundingMode);
         $divisor = 10 ** $this->currency()->getDecimals();
-        $dividedAmount = $this->amount / $divisor;
+
+        $dividedAmount = $amount / $divisor;
 
         $numberFormatter = new NumberFormatter($humanLocale, NumberFormatter::CURRENCY);
 
@@ -86,12 +101,17 @@ readonly class Money implements Hashable
             );
         }
 
-        return new Money($this->amount() + $money->amount(), $this->currency());
+        $newAmount = bcadd($this->amount(), $money->amount(), 0);
+
+        return new Money($newAmount, $this->currency());
     }
 
-    public function amount(): int
+    /**
+     * @return numeric-string
+     */
+    public function amount(RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero): string
     {
-        return $this->amount;
+        return bcround($this->amount, 0, $roundingMode);
     }
 
     public function subtract(Money $money): Money
@@ -102,19 +122,29 @@ readonly class Money implements Hashable
             );
         }
 
-        return new Money($this->amount() - $money->amount(), $this->currency());
-    }
-
-    public function multiply(float $multiplier, RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero): Money
-    {
-        $newAmount = (int)round($this->amount() * $multiplier, 0, $roundingMode);
+        $newAmount = bcsub($this->amount(), $money->amount(), 0);
 
         return new Money($newAmount, $this->currency());
     }
 
-    public function divide(float $divisor, RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero): Money
-    {
-        $newAmount = (int)round($this->amount() / $divisor, 0, $roundingMode);
+    public function multiply(
+        float $multiplier,
+        int $multiplierPrecision,
+    ): Money {
+        $formattedMultiplier = number_format($multiplier, $multiplierPrecision, '.', '');
+
+        $newAmount = bcmul($this->amount(), $formattedMultiplier, self::BC_MATH_SCALE);
+
+        return new Money($newAmount, $this->currency());
+    }
+
+    public function divide(
+        float $divisor,
+        int $divisorPrecision,
+    ): Money {
+        $formattedDivisor = number_format($divisor, $divisorPrecision, '.', '');
+
+        $newAmount = bcdiv($this->amount(), $formattedDivisor, self::BC_MATH_SCALE);
 
         return new Money($newAmount, $this->currency());
     }
@@ -122,9 +152,11 @@ readonly class Money implements Hashable
     public function convert(
         Currency $targetCurrency,
         float $conversionRate,
-        RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero
+        int $conversionRatePrecision,
     ): Money {
-        $newAmount = (int)round($this->amount() * $conversionRate, 0, $roundingMode);
+        $formattedConversionRate = number_format($conversionRate, $conversionRatePrecision, '.', '');
+
+        $newAmount = bcmul($this->amount(), $formattedConversionRate, self::BC_MATH_SCALE);
 
         return new Money($newAmount, $targetCurrency);
     }
