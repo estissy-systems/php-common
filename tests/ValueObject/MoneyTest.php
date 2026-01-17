@@ -71,7 +71,7 @@ class MoneyTest extends TestCase
 
         $newMoney = $firstMoney->add($secondMoney);
 
-        self::assertSame(30005, $newMoney->amount());
+        self::assertSame('30005', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
     }
 
@@ -92,7 +92,7 @@ class MoneyTest extends TestCase
 
         $newMoney = $firstMoney->subtract($secondMoney);
 
-        self::assertSame(-5, $newMoney->amount());
+        self::assertSame('-5', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
     }
 
@@ -110,47 +110,52 @@ class MoneyTest extends TestCase
     {
         $firstMoney = Money::fromAmountAndCurrency(15000, Currency::PLN);
 
-        $newMoney = $firstMoney->multiply(1.2);
+        $newMoney = $firstMoney->multiply(1.2, 1);
 
-        self::assertSame(18000, $newMoney->amount());
+        self::assertSame('18000', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
 
         $firstMoney = Money::fromAmountAndCurrency(15005, Currency::PLN);
 
-        $newMoney = $firstMoney->multiply(1.33);
+        $newMoney = $firstMoney->multiply(1.33, 2);
 
-        self::assertSame(19957, $newMoney->amount());
+        self::assertSame('19957', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
 
         $firstMoney = Money::fromAmountAndCurrency(15005, Currency::PLN);
 
-        $newMoney = $firstMoney->multiply(1.33333);
+        $newMoney = $firstMoney->multiply(1.33333, 5);
 
-        self::assertSame(20007, $newMoney->amount());
+        self::assertSame('20007', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
+
+        $money = Money::fromAmountAndCurrency(9007199254740995, Currency::USD);
+        $newMoney = $money->multiply(0.3333333333333333, 16);
+
+        self::assertSame('3002399751580331', $newMoney->amount());
     }
 
     public function testDivideShouldDivideAmountAndKeepCurrency(): void
     {
         $firstMoney = Money::fromAmountAndCurrency(15000, Currency::PLN);
 
-        $newMoney = $firstMoney->divide(1.2);
+        $newMoney = $firstMoney->divide(1.2, 1);
 
-        self::assertSame(12500, $newMoney->amount());
+        self::assertSame('12500', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
 
         $firstMoney = Money::fromAmountAndCurrency(15005, Currency::PLN);
 
-        $newMoney = $firstMoney->divide(1.33);
+        $newMoney = $firstMoney->divide(1.33, 2);
 
-        self::assertSame(11282, $newMoney->amount());
+        self::assertSame('11282', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
 
         $firstMoney = Money::fromAmountAndCurrency(15005, Currency::PLN);
 
-        $newMoney = $firstMoney->divide(1.33333);
+        $newMoney = $firstMoney->divide(1.33333, 5);
 
-        self::assertSame(11254, $newMoney->amount());
+        self::assertSame('11254', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
     }
 
@@ -158,9 +163,9 @@ class MoneyTest extends TestCase
     {
         $firstMoney = Money::fromAmountAndCurrency(15000, Currency::USD);
 
-        $newMoney = $firstMoney->convert(Currency::PLN, 3.8);
+        $newMoney = $firstMoney->convert(Currency::PLN, 3.8, 1);
 
-        self::assertSame(57000, $newMoney->amount());
+        self::assertSame('57000', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
     }
 
