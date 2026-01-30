@@ -110,27 +110,27 @@ class MoneyTest extends TestCase
     {
         $firstMoney = Money::fromAmountAndCurrency(15000, Currency::PLN);
 
-        $newMoney = $firstMoney->multiply(1.2, 1);
+        $newMoney = $firstMoney->multiply('1.2');
 
         self::assertSame('18000', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
 
         $firstMoney = Money::fromAmountAndCurrency(15005, Currency::PLN);
 
-        $newMoney = $firstMoney->multiply(1.33, 2);
+        $newMoney = $firstMoney->multiply('1.33');
 
         self::assertSame('19957', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
 
         $firstMoney = Money::fromAmountAndCurrency(15005, Currency::PLN);
 
-        $newMoney = $firstMoney->multiply(1.33333, 5);
+        $newMoney = $firstMoney->multiply('1.33333');
 
         self::assertSame('20007', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
 
         $money = Money::fromAmountAndCurrency(9007199254740995, Currency::USD);
-        $newMoney = $money->multiply(0.3333333333333333, 16);
+        $newMoney = $money->multiply('0.3333333333333333');
 
         self::assertSame('3002399751580331', $newMoney->amount());
     }
@@ -139,31 +139,44 @@ class MoneyTest extends TestCase
     {
         $firstMoney = Money::fromAmountAndCurrency(15000, Currency::PLN);
 
-        $newMoney = $firstMoney->divide(1.2, 1);
+        $newMoney = $firstMoney->divide('1.2');
 
         self::assertSame('12500', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
 
         $firstMoney = Money::fromAmountAndCurrency(15005, Currency::PLN);
 
-        $newMoney = $firstMoney->divide(1.33, 2);
+        $newMoney = $firstMoney->divide('1.33');
 
         self::assertSame('11282', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
 
         $firstMoney = Money::fromAmountAndCurrency(15005, Currency::PLN);
 
-        $newMoney = $firstMoney->divide(1.33333, 5);
+        $newMoney = $firstMoney->divide('1.33333');
 
         self::assertSame('11254', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
+
+        $money = Money::fromAmountAndCurrency(100, Currency::PLN);
+        $dividedMoney = $money->divide(6);
+
+        self::assertSame('17', $dividedMoney->amount());
+
+        $this->expectException(LogicException::class);
+        $money = Money::fromAmountAndCurrency(100, Currency::PLN);
+        $money->divide(0);
+
+        $this->expectException(LogicException::class);
+        $money = Money::fromAmountAndCurrency(100, Currency::PLN);
+        $money->divide('0.000');
     }
 
     public function testConvertShouldMultiplyMoneyAndChangeCurrency(): void
     {
         $firstMoney = Money::fromAmountAndCurrency(15000, Currency::USD);
 
-        $newMoney = $firstMoney->convert(Currency::PLN, 3.8, 1);
+        $newMoney = $firstMoney->convert(Currency::PLN, '3.8');
 
         self::assertSame('57000', $newMoney->amount());
         self::assertSame(Currency::PLN, $newMoney->currency());
@@ -171,39 +184,49 @@ class MoneyTest extends TestCase
 
     public function testToHumanStringShouldReturnMoneyInProvidedLocaleFormat(): void
     {
+        $money = Money::fromAmountAndCurrency(150000000, Currency::PLN);
+        $result = $money->toLocaleString('pl_PL');
+
+        self::assertSame('1 500 000,00 zł', $result);
+
         $money = Money::fromAmountAndCurrency(150000005, Currency::PLN);
-        $result = $money->toHumanString('pl_PL');
+        $result = $money->toLocaleString('pl_PL');
 
         self::assertSame('1 500 000,05 zł', $result);
 
         $money = Money::fromAmountAndCurrency(-15000005, Currency::PLN);
-        $result = $money->toHumanString('pl_PL');
+        $result = $money->toLocaleString('pl_PL');
 
         self::assertSame('-150 000,05 zł', $result);
 
         $money = Money::fromAmountAndCurrency(15000005, Currency::EUR);
-        $result = $money->toHumanString('de_DE');
+        $result = $money->toLocaleString('de_DE');
 
         self::assertSame('150.000,05 €', $result);
 
         $money = Money::fromAmountAndCurrency(15000005, Currency::USD);
-        $result = $money->toHumanString('en_US');
+        $result = $money->toLocaleString('en_US');
 
         self::assertSame('$150,000.05', $result);
 
         $money = Money::fromAmountAndCurrency(15000005, Currency::PLN);
-        $result = $money->toHumanString('en_US');
+        $result = $money->toLocaleString('en_US');
 
         self::assertSame('PLN 150,000.05', $result);
 
         $money = Money::fromAmountAndCurrency(15000005, Currency::JPY);
-        $result = $money->toHumanString('en_US');
+        $result = $money->toLocaleString('en_US');
 
         self::assertSame('¥15,000,005', $result);
 
         $money = Money::fromAmountAndCurrency(15000005, Currency::EUR);
-        $result = $money->toHumanString('en_US');
+        $result = $money->toLocaleString('en_US');
 
         self::assertSame('€150,000.05', $result);
+
+        $money = Money::fromAmountAndCurrency('92233720368547758080', Currency::EUR);
+        $result = $money->toLocaleString('en_US');
+
+        self::assertSame('€922,337,203,685,477,580.80', $result);
     }
 }
