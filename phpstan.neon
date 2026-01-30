@@ -4,3 +4,4 @@ parameters:
 		- src
 		- tests
 	reportUnmatchedIgnoredErrors: false
+	treatPhpDocTypesAsCertain: false
