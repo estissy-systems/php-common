@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace EstissySystems\PhpCommon\ValueObject;
 
+use DivisionByZeroError;
 use Ds\Hashable;
+use InvalidArgumentException;
 use LogicException;
 use NumberFormatter;
+use OverflowException;
 use RoundingMode;
 
 /**
@@ -23,7 +26,6 @@ readonly class Money implements Hashable
      */
     private string $amount;
     private Currency $currency;
-    private string $hash;
 
     /**
      * @param numeric-string $amount
@@ -33,70 +35,67 @@ readonly class Money implements Hashable
     {
         $this->amount = $amount;
         $this->currency = $currency;
-        $this->hash = hash('sha256', self::class . $amount . $currency->value);
     }
 
     /**
-     * @param int|numeric-string $amount The amount in the smallest unit as possible
+     * @param int|numeric-string $amount The amount in the smallest unit as possible for given currency
      */
     public static function fromAmountAndCurrency(int|string $amount, Currency $currency): Money
     {
-        if (is_int($amount)) {
+        if (is_int($amount) === true) {
             $amount = (string)$amount;
         }
 
         return new Money($amount, $currency);
     }
 
-    public function toString(RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero): string
+    public function getRaw(): string
     {
-        $amount = bcround($this->amount, 0, $roundingMode);
-        $divisor = 10 ** $this->currency()->getDecimals();
+        $divisor = bcpow('10', (string)$this->getCurrency()->getDecimals(), 0);
+        $dividedAmount = bcdiv($this->amount, $divisor, self::BC_MATH_SCALE);
 
-        $dividedAmount = bcdiv($amount, (string)$divisor, $this->currency()->getDecimals());
-
-        return sprintf("%s %s", $dividedAmount, $this->currency()->value);
+        return sprintf("%s %s", $dividedAmount, $this->getCurrency()->value);
     }
 
-    public function currency(): Currency
+    public function getCurrency(): Currency
     {
         return $this->currency;
     }
 
-    public function toLocaleString(
+    public function getRoundedLocaleString(
         string $locale,
         RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero
     ): string {
-        $divisor = 10 ** $this->currency()->getDecimals();
-        $dividedAmount = bcdiv($this->amount, (string)$divisor, self::BC_MATH_SCALE);
+        $divisor = bcpow('10', (string)$this->getCurrency()->getDecimals(), 0);
+        $dividedAmount = bcdiv($this->amount, $divisor, self::BC_MATH_SCALE);
 
         $numberFormatter = new NumberFormatter($locale, NumberFormatter::CURRENCY);
-        $numberFormatter->setTextAttribute(NumberFormatter::CURRENCY_CODE, $this->currency()->value);
+        $numberFormatter->setTextAttribute(NumberFormatter::CURRENCY_CODE, $this->getCurrency()->value);
 
         $symbol = $numberFormatter->getSymbol(NumberFormatter::CURRENCY_SYMBOL);
 
         $decimalSeparator = null;
-        if ($this->currency()->getDecimals() > 0) {
+        if ($this->getCurrency()->getDecimals() > 0) {
             $decimalSeparator = $numberFormatter->getSymbol(NumberFormatter::DECIMAL_SEPARATOR_SYMBOL);
         }
         $groupingSeparator = $numberFormatter->getSymbol(NumberFormatter::GROUPING_SEPARATOR_SYMBOL);
 
-        $roundedAmount = bcround($dividedAmount, $this->currency()->getDecimals(), $roundingMode);
+        $roundedAmount = bcround($dividedAmount, $this->getCurrency()->getDecimals(), $roundingMode);
 
         $integralPart = explode('.', $roundedAmount)[0];
         $decimalPart = null;
-        if ($this->currency()->getDecimals() > 0) {
+        if ($this->getCurrency()->getDecimals() > 0) {
             $decimalPart = explode('.', $roundedAmount)[1];
         }
 
         $groupedIntegralPart = preg_replace('/\B(?=(\d{3})+(?!\d))/', $groupingSeparator, $integralPart);
 
         $exampleCurrencyAmount = 1;
-        $exampleFormatting = $numberFormatter->formatCurrency($exampleCurrencyAmount, $this->currency()->value);
+        $exampleFormatting = $numberFormatter->formatCurrency($exampleCurrencyAmount, $this->getCurrency()->value);
 
         if ($exampleFormatting === false) {
             throw new LogicException(
-                "Error while formatting currency {$this->currency()->value} for locale $locale"
+                "Error while formatting currency {$this->getCurrency()->value} for locale $locale"
             );
         }
 
@@ -146,7 +145,7 @@ readonly class Money implements Hashable
                 $numberFormatter->getSymbol(NumberFormatter::CURRENCY_SYMBOL),
             ) && $decimalSeparator === null, => $groupedIntegralPart . $symbol,
             default => throw new LogicException(
-                "Error while formatting currency {$this->currency()->value} for locale $locale"
+                "Error while formatting currency {$this->getCurrency()->value} for locale $locale"
             )
         };
     }
@@ -157,46 +156,76 @@ readonly class Money implements Hashable
             return false;
         }
 
-        return $this->hash === $obj->hash();
+        return $this->hash() === $obj->hash();
     }
 
     public function hash(): string
     {
-        return $this->hash;
+        return sprintf("%s%s%s", static::class, $this->amount, $this->getCurrency()->value);
     }
 
     public function add(Money $money): Money
     {
-        if ($this->currency() !== $money->currency()) {
+        if ($this->getCurrency() !== $money->getCurrency()) {
             throw new LogicException(
-                "Error while adding money. Money currency {$this->currency()->value} is not equal added money currency {$money->currency()->value}."
+                "Error while adding money. Money currency {$this->getCurrency()->value} is not equal added money currency {$money->getCurrency()->value}."
             );
         }
 
-        $newAmount = bcadd($this->amount(), $money->amount(), 0);
+        $newAmount = bcadd($this->getRawAmount(), $money->getRawAmount(), self::BC_MATH_SCALE);
 
-        return new Money($newAmount, $this->currency());
+        return new Money($newAmount, $this->getCurrency());
     }
 
     /**
      * @return numeric-string
      */
-    public function amount(RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero): string
+    public function getRawAmount(): string
+    {
+        return $this->amount;
+    }
+
+    public function getRoundedStringAmountInMajorUnits(RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero): string
+    {
+        $divisor = bcpow('10', (string)$this->getCurrency()->getDecimals(), 0);
+        $dividedAmount = bcdiv($this->amount, $divisor, self::BC_MATH_SCALE);
+
+        return bcround($dividedAmount, $this->currency->getDecimals(), $roundingMode);
+    }
+
+    public function getRoundedStringAmountInMinorUnits(RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero): string
     {
         return bcround($this->amount, 0, $roundingMode);
     }
 
+    /**
+     * @throws OverflowException
+     */
+    public function getRoundedIntAmountInMinorUnits(RoundingMode $roundingMode = RoundingMode::HalfAwayFromZero): int
+    {
+        $result = bcround($this->amount, 0, $roundingMode);
+
+        if (
+            bccomp($result, (string)PHP_INT_MAX) > 0 ||
+            bccomp($result, (string)PHP_INT_MIN) < 0
+        ) {
+            throw new OverflowException("Amount cannot be represented as integer: {$this->amount}");
+        }
+
+        return (int)$result;
+    }
+
     public function subtract(Money $money): Money
     {
-        if ($this->currency() !== $money->currency()) {
+        if ($this->getCurrency() !== $money->getCurrency()) {
             throw new LogicException(
-                "Error while subtracting money. Money currency {$this->currency()->value} is not equal subtracted money currency {$money->currency()->value}."
+                "Error while subtracting money. Money currency {$this->getCurrency()->value} is not equal subtracted money currency {$money->getCurrency()->value}."
             );
         }
 
-        $newAmount = bcsub($this->amount(), $money->amount(), 0);
+        $newAmount = bcsub($this->getRawAmount(), $money->getRawAmount(), self::BC_MATH_SCALE);
 
-        return new Money($newAmount, $this->currency());
+        return new Money($newAmount, $this->getCurrency());
     }
 
     /**
@@ -213,9 +242,9 @@ readonly class Money implements Hashable
             $multiplier = (string)$multiplier;
         }
 
-        $newAmount = bcmul($this->amount(), $multiplier, self::BC_MATH_SCALE);
+        $newAmount = bcmul($this->getRawAmount(), $multiplier, self::BC_MATH_SCALE);
 
-        return new Money($newAmount, $this->currency());
+        return new Money($newAmount, $this->getCurrency());
     }
 
     /**
@@ -225,7 +254,7 @@ readonly class Money implements Hashable
         int|string $divisor,
     ): Money {
         if (is_string($divisor) === true && is_numeric($divisor) === false) {
-            throw new LogicException('Error while dividing. Divisor must be a numeric string or integer.');
+            throw new InvalidArgumentException('Error while dividing. Divisor must be a numeric string or integer.');
         }
 
         if (is_int($divisor) === true) {
@@ -233,12 +262,12 @@ readonly class Money implements Hashable
         }
 
         if ((float)$divisor === 0.0) {
-            throw new LogicException('Error while dividing. Divisor must not be zero.');
+            throw new DivisionByZeroError('Error while dividing. Divisor must not be zero.');
         }
 
-        $newAmount = bcdiv($this->amount(), $divisor, self::BC_MATH_SCALE);
+        $newAmount = bcdiv($this->getRawAmount(), $divisor, self::BC_MATH_SCALE);
 
-        return new Money($newAmount, $this->currency());
+        return new Money($newAmount, $this->getCurrency());
     }
 
     /**
@@ -256,7 +285,7 @@ readonly class Money implements Hashable
             $conversionRate = (string)$conversionRate;
         }
 
-        $newAmount = bcmul($this->amount(), $conversionRate, self::BC_MATH_SCALE);
+        $newAmount = bcmul($this->getRawAmount(), $conversionRate, self::BC_MATH_SCALE);
 
         return new Money($newAmount, $targetCurrency);
     }
