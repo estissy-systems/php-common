@@ -270,6 +270,16 @@ readonly class Money implements Hashable
         return new Money($newAmount, $this->getCurrency());
     }
 
+    public function isZero(): bool
+    {
+        return bccomp($this->amount, '0', self::BC_MATH_SCALE) === 0;
+    }
+
+    public function isNegative(): bool
+    {
+        return bccomp($this->amount, '0', self::BC_MATH_SCALE) < 0;
+    }
+
     /**
      * @param int|numeric-string $conversionRate
      */

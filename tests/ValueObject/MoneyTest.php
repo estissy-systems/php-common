@@ -241,6 +241,50 @@ class MoneyTest extends TestCase
         self::assertSame('€922,337,203,685,477,580.80', $result);
     }
 
+    public function testIsZeroShouldReturnTrueWhenAmountIsZero(): void
+    {
+        $money = Money::fromAmountAndCurrency(0, Currency::PLN);
+
+        self::assertTrue($money->isZero());
+
+        $money = Money::fromAmountAndCurrency('0', Currency::USD);
+
+        self::assertTrue($money->isZero());
+    }
+
+    public function testIsZeroShouldReturnFalseWhenAmountIsNotZero(): void
+    {
+        $money = Money::fromAmountAndCurrency(100, Currency::PLN);
+
+        self::assertFalse($money->isZero());
+
+        $money = Money::fromAmountAndCurrency(-100, Currency::PLN);
+
+        self::assertFalse($money->isZero());
+    }
+
+    public function testIsNegativeShouldReturnTrueWhenAmountIsNegative(): void
+    {
+        $money = Money::fromAmountAndCurrency(-100, Currency::PLN);
+
+        self::assertTrue($money->isNegative());
+
+        $money = Money::fromAmountAndCurrency('-1', Currency::USD);
+
+        self::assertTrue($money->isNegative());
+    }
+
+    public function testIsNegativeShouldReturnFalseWhenAmountIsZeroOrPositive(): void
+    {
+        $money = Money::fromAmountAndCurrency(0, Currency::PLN);
+
+        self::assertFalse($money->isNegative());
+
+        $money = Money::fromAmountAndCurrency(100, Currency::PLN);
+
+        self::assertFalse($money->isNegative());
+    }
+
     public function testGetRoundedStringAmountInMajorUnitsShouldReturnRoundedAmount(): void
     {
         $money = Money::fromAmountAndCurrency(15000, Currency::PLN);
